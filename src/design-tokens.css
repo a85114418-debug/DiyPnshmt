@@ -1,0 +1,206 @@
+/* DiyPnshmt Design Tokens - Apple-inspired */
+
+:root {
+  /* Colors - Brand & Accent */
+  --clr-primary: #0066cc;
+  --clr-primary-focus: #0071e3;
+  --clr-primary-on-dark: #2997ff;
+
+  /* Colors - Surface */
+  --clr-canvas: #ffffff;
+  --clr-parchment: #f5f5f7;
+  --clr-surface-pearl: #fafafc;
+  --clr-surface-dark-1: #272729;
+  --clr-surface-dark-2: #2a2a2c;
+  --clr-surface-black: #000000;
+  --clr-surface-chip: rgba(210, 210, 215, 0.64);
+
+  /* Colors - Text */
+  --clr-ink: #1d1d1f;
+  --clr-ink-muted-80: #333333;
+  --clr-ink-muted-48: #7a7a7a;
+  --clr-body: #1d1d1f;
+  --clr-body-muted: #cccccc;
+  --clr-on-primary: #ffffff;
+  --clr-on-dark: #ffffff;
+
+  /* Colors - Borders */
+  --clr-hairline: #e0e0e0;
+  --clr-divider-soft: #f0f0f0;
+
+  /* Typography */
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: var(--font-system);
+  --font-text: var(--font-system);
+
+  /* Type Scale */
+  --type-counter: 96px;
+  --type-hero: 56px;
+  --type-display-lg: 40px;
+  --type-display-md: 34px;
+  --type-lead: 28px;
+  --type-tagline: 21px;
+  --type-body: 17px;
+  --type-caption: 14px;
+  --type-fine: 12px;
+
+  /* Radius */
+  --rds-none: 0;
+  --rds-sm: 8px;
+  --rds-md: 11px;
+  --rds-lg: 18px;
+  --rds-pill: 9999px;
+
+  /* Spacing */
+  --sp-xxs: 4px;
+  --sp-xs: 8px;
+  --sp-sm: 12px;
+  --sp-md: 17px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+  --sp-xxl: 48px;
+  --sp-section: 80px;
+
+  /* Shadows */
+  --shadow-product: 0 3px 30px rgba(0, 0, 0, 0.22);
+  --shadow-focus: 0 0 0 2px var(--clr-primary-focus);
+
+  /* Transitions */
+  --trans-fast: 150ms ease;
+  --trans-base: 300ms ease;
+  --trans-slow: 500ms ease;
+
+  /* Z-index */
+  --z-base: 1;
+  --z-nav: 100;
+  --z-modal: 200;
+  --z-effect: 0;
+}
+
+/* Global Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-text);
+  font-size: var(--type-body);
+  line-height: 1.47;
+  letter-spacing: -0.022em;
+  color: var(--clr-body);
+  background-color: var(--clr-canvas);
+}
+
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Typography Utilities */
+.text-hero {
+  font-family: var(--font-display);
+  font-size: var(--type-hero);
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.005em;
+}
+
+.text-display-lg {
+  font-family: var(--font-display);
+  font-size: var(--type-display-lg);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.text-tagline {
+  font-family: var(--font-display);
+  font-size: var(--type-tagline);
+  font-weight: 600;
+  line-height: 1.19;
+  letter-spacing: 0.011em;
+}
+
+.text-body {
+  font-family: var(--font-text);
+  font-size: var(--type-body);
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.022em;
+}
+
+.text-caption {
+  font-family: var(--font-text);
+  font-size: var(--type-caption);
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.016em;
+}
+
+.text-fine {
+  font-family: var(--font-text);
+  font-size: var(--type-fine);
+  font-weight: 400;
+  line-height: 1.0;
+  letter-spacing: -0.01em;
+}
+
+/* Button Base */
+button {
+  font-family: var(--font-text);
+  font-size: var(--type-body);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform var(--trans-fast);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Input Base */
+input, select, textarea {
+  font-family: var(--font-text);
+  font-size: var(--type-body);
+  color: var(--clr-ink);
+}
+
+/* Focus Styles */
+:focus-visible {
+  outline: 2px solid var(--clr-primary-focus);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--clr-divider-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--clr-ink-muted-48);
+  border-radius: var(--rds-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--clr-ink-muted-80);
+}

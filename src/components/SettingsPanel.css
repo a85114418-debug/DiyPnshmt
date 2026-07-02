@@ -1,0 +1,11 @@
+.settings-panel {
+  padding: var(--sp-lg);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: var(--type-tagline);
+  font-weight: 600;
+  margin-bottom: var(--sp-lg);
+  color: var(--clr-ink);
+}
