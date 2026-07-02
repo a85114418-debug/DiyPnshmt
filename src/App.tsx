@@ -1,10 +1,8 @@
-import { useState, useCallback } from 'react';
-import type { AppMode, Settings } from './types';
+import { useState, useCallback, useEffect } from 'react';
+import type { AppMode, Settings, VisualEffect } from './types';
 import { useAudioDetector } from './hooks/useAudioDetector';
 import { useCountdownTimer } from './hooks/useCountdownTimer';
 import { useRandomCountdown } from './hooks/useRandomCountdown';
-import { useSpeechAnnounce } from './hooks/useSpeechAnnounce';
-import { useRecordingSession } from './hooks/useRecordingSession';
 import { loadSettings, saveSettings } from './utils/storage';
 import { closeAudioCtx } from './utils/beep';
 import { CounterDial } from './components/CounterDial';
@@ -12,29 +10,32 @@ import { VolumeMeter } from './components/VolumeMeter';
 import { ControlBar } from './components/ControlBar';
 import { ModeTabs } from './components/ModeTabs';
 import { SettingsPanel } from './components/SettingsPanel';
-import { VoiceSettings } from './components/VoiceSettings';
-import { SessionRecorder } from './components/SessionRecorder';
-import { HistoryPanel } from './components/HistoryPanel';
 import { ParticleEffect } from './components/ParticleEffect';
 import './App.css';
 
+const EFFECT_OPTIONS: { key: VisualEffect; label: string; icon: string }[] = [
+  { key: 'none', label: '关闭特效', icon: '✕' },
+  { key: 'snow', label: '飘雪', icon: '❄' },
+  { key: 'sakura', label: '樱花', icon: '🌸' },
+  { key: 'rain', label: '雨点', icon: '🌧' },
+];
+
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
-  const [activePanel, setActivePanel] = useState<'settings' | 'session' | 'history' | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [effectMenuOpen, setEffectMenuOpen] = useState(false);
+  const [orientationBlocked, setOrientationBlocked] = useState(false);
 
   const voice = useAudioDetector(settings);
   const countdown = useCountdownTimer(settings);
   const random = useRandomCountdown(settings);
-  const announce = useSpeechAnnounce(settings);
-  const recording = useRecordingSession();
 
   const isVoice = settings.mode === 'voice';
   const isCountdown = settings.mode === 'countdown';
-  const isAnnounce = settings.mode === 'announce';
   const isRandom = isCountdown && settings.countdownMode === 'random';
 
   const activeCountdown = isRandom ? random : countdown;
-  const activeMode = isCountdown ? activeCountdown : (isAnnounce ? announce : voice);
+  const activeMode = isCountdown ? activeCountdown : voice;
 
   const { status, count, isFlashing } = activeMode;
   const displayTarget = isCountdown ? activeCountdown.total : settings.target;
@@ -44,16 +45,24 @@ export default function App() {
     voice.reset();
     countdown.reset();
     random.reset();
-    announce.reset();
     closeAudioCtx();
     const next = { ...settings, mode: newMode };
     setSettings(next);
     saveSettings(next);
-  }, [settings, voice, countdown, random, announce]);
+  }, [settings, voice, countdown, random]);
 
   const handleSettingsChange = useCallback((s: Settings) => {
     setSettings(s);
     saveSettings(s);
+  }, []);
+
+  const handleEffectChange = useCallback((v: VisualEffect) => {
+    setSettings((prev) => {
+      const next = { ...prev, visualEffect: v };
+      saveSettings(next);
+      return next;
+    });
+    setEffectMenuOpen(false);
   }, []);
 
   const handleStart = useCallback(async () => {
@@ -63,29 +72,52 @@ export default function App() {
       } else {
         countdown.start();
       }
-    } else if (isAnnounce) {
-      try {
-        await announce.startListening();
-      } catch {
-        // Error logged
-      }
     } else {
       try {
         await voice.startListening();
       } catch {
-        // Error logged
+        // Error logged in hook
       }
     }
-  }, [isCountdown, isRandom, isAnnounce, random, countdown, announce, voice]);
-
-  if (recording.isRecording) {
-    recording.updateCount(settings.mode, count);
-  }
+  }, [isCountdown, isRandom, random, countdown, voice]);
 
   const isRunning = status === 'listening' || status === 'paused';
+  const currentEffect = EFFECT_OPTIONS.find((e) => e.key === settings.visualEffect) || EFFECT_OPTIONS[0];
+
+  // PWA service worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  }, []);
+
+  // Mobile orientation lock
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isMobile = window.innerWidth < 1024;
+      const isLandscape = window.innerWidth > window.innerHeight;
+      setOrientationBlocked(isMobile && isLandscape);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile && 'orientation' in screen && typeof (screen.orientation as any).lock === 'function') {
+      (screen.orientation as any).lock('portrait').catch(() => {});
+    }
+
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
 
   return (
     <>
+      {orientationBlocked && (
+        <div className="rotate-overlay">
+          <div className="rotate-icon">📱</div>
+          <div className="rotate-text">请竖屏使用</div>
+          <div className="rotate-sub">旋转设备以获得最佳体验</div>
+        </div>
+      )}
       <ParticleEffect effect={settings.visualEffect} />
 
       <div className="app">
@@ -105,29 +137,47 @@ export default function App() {
               count={count}
               target={displayTarget}
               isFlashing={isFlashing}
+              reverse={isCountdown}
             />
           </section>
 
-          {(isVoice || isAnnounce) && (
+          {isVoice && (
             <section className="section-volume">
               <VolumeMeter
-                dbLevel={isVoice ? voice.dbLevel : announce.dbLevel}
+                dbLevel={voice.dbLevel}
                 threshold={settings.threshold}
-                baseline={isVoice ? voice.baseline : announce.baseline}
+                baseline={voice.baseline}
               />
             </section>
           )}
 
-          {isAnnounce && (
-            <section className="section-voice">
-              <VoiceSettings
-                lang={settings.voiceLang}
-                selectedVoiceURI={settings.selectedVoiceURI}
-                onLangChange={(lang) => handleSettingsChange({ ...settings, voiceLang: lang })}
-                onVoiceChange={(uri) => handleSettingsChange({ ...settings, selectedVoiceURI: uri })}
-              />
-            </section>
-          )}
+          {/* Visual effect selector */}
+          <section className="section-effect">
+            <div className="effect-toggle">
+              <button
+                className="effect-btn"
+                onClick={() => setEffectMenuOpen(!effectMenuOpen)}
+                title={currentEffect.label}
+              >
+                <span className="effect-icon">{currentEffect.icon}</span>
+                <span className="effect-label">{currentEffect.label}</span>
+              </button>
+              {effectMenuOpen && (
+                <div className="effect-menu">
+                  {EFFECT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.key}
+                      className={`effect-option ${settings.visualEffect === opt.key ? 'active' : ''}`}
+                      onClick={() => handleEffectChange(opt.key)}
+                    >
+                      <span className="effect-icon">{opt.icon}</span>
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
 
           <section className="section-controls">
             <ControlBar
@@ -140,50 +190,21 @@ export default function App() {
           </section>
 
           <section className="section-panels">
-            <div className="panel-tabs">
-              <button
-                className={`panel-tab ${activePanel === 'settings' ? 'active' : ''}`}
-                onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-              >
-                设置
-              </button>
-              <button
-                className={`panel-tab ${activePanel === 'session' ? 'active' : ''}`}
-                onClick={() => setActivePanel(activePanel === 'session' ? null : 'session')}
-              >
-                记录
-              </button>
-              <button
-                className={`panel-tab ${activePanel === 'history' ? 'active' : ''}`}
-                onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
-              >
-                历史
-              </button>
-            </div>
+            <button
+              className={`panel-tab-only ${showSettings ? 'active' : ''}`}
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              设置
+            </button>
 
-            {activePanel === 'settings' && (
+            {showSettings && (
               <div className="panel-content">
-                <SettingsPanel settings={settings} />
-              </div>
-            )}
-
-            {activePanel === 'session' && (
-              <div className="panel-content">
-                <SessionRecorder
-                  activeSession={recording.activeSession}
-                  isRecording={recording.isRecording}
-                  onCreateSession={recording.createSession}
-                  onStartRecording={recording.startRecording}
-                  onEndRecording={recording.endRecording}
-                />
-              </div>
-            )}
-
-            {activePanel === 'history' && (
-              <div className="panel-content">
-                <HistoryPanel
-                  sessions={recording.sessions}
-                  onDelete={recording.deleteSession}
+                <SettingsPanel
+                  settings={settings}
+                  baseline={voice.baseline}
+                  onChange={handleSettingsChange}
+                  onCalibrate={voice.calibrate}
+                  disabled={isRunning}
                 />
               </div>
             )}

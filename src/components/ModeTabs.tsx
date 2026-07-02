@@ -10,7 +10,6 @@ interface Props {
 const MODE_OPTIONS: { key: AppMode; label: string; icon: string }[] = [
   { key: 'voice', label: '声控计数', icon: '🎤' },
   { key: 'countdown', label: '倒计时', icon: '⏱️' },
-  { key: 'announce', label: '语音报数', icon: '🔊' },
 ];
 
 export function ModeTabs({ mode, onChange, disabled = false }: Props) {

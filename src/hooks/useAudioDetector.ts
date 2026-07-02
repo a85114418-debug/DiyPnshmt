@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { AppStatus, LogEntry, Settings } from '../types';
 import { initAudio, getVolume, toDecibel, closeAudio } from '../utils/audio';
+import { playSound } from '../utils/beep';
 
 const CALIBRATE_MS = 2000;
 const DISPLAY_INTERVAL = 200;
@@ -27,6 +28,7 @@ export function useAudioDetector(settings: Settings) {
   const countRef = useRef(settings.initialCount);
   const logsRef = useRef<LogEntry[]>([]);
   const settingsRef = useRef(settings);
+  const simulatedDbRef = useRef<number | null>(null);
 
   settingsRef.current = settings;
 
@@ -70,7 +72,7 @@ export function useAudioDetector(settings: Settings) {
     }
     lastSampleTimeRef.current = timestamp;
 
-    const rawDb = toDecibel(getVolume(analyser));
+    const rawDb = simulatedDbRef.current !== null ? simulatedDbRef.current : toDecibel(getVolume(analyser));
 
     if (timestamp - lastDisplayTimeRef.current >= DISPLAY_INTERVAL) {
       lastDisplayTimeRef.current = timestamp;
@@ -86,6 +88,8 @@ export function useAudioDetector(settings: Settings) {
       setCount(countRef.current);
       setIsFlashing(true);
       addLog(`触发! ${countRef.current} (音量: ${rawDb.toFixed(1)} dB)`);
+
+      void playSound(settingsRef.current.soundType, settingsRef.current.soundVolume);
 
       setTimeout(() => setIsFlashing(false), 300);
 
@@ -154,6 +158,10 @@ export function useAudioDetector(settings: Settings) {
     addLog('已重置');
   }, [addLog]);
 
+  const setSimulatedDb = useCallback((value: number | null) => {
+    simulatedDbRef.current = value;
+  }, []);
+
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
@@ -177,5 +185,6 @@ export function useAudioDetector(settings: Settings) {
     resume,
     reset,
     calibrate,
+    setSimulatedDb,
   } as const;
 }

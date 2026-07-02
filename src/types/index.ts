@@ -2,19 +2,16 @@
 export type AppStatus = 'idle' | 'listening' | 'paused' | 'finished';
 
 /** Application mode */
-export type AppMode = 'voice' | 'countdown' | 'announce';
+export type AppMode = 'voice' | 'countdown';
 
 /** Countdown sub-mode */
 export type CountdownMode = 'fixed' | 'random';
 
 /** Sound type */
-export type SoundType = 'beep' | 'double-beep' | 'chime';
+export type SoundType = 'beep' | 'double-beep' | 'chime' | 'custom';
 
 /** Visual effect type */
 export type VisualEffect = 'none' | 'snow' | 'sakura' | 'rain';
-
-/** Voice language */
-export type VoiceLang = 'zh' | 'en';
 
 /** User settings */
 export interface Settings {
@@ -34,26 +31,11 @@ export interface Settings {
   randomRangeMin: number;
   randomRangeMax: number;
   randomFrequency: number;
-  // Voice announcement
-  voiceLang: VoiceLang;
-  selectedVoiceURI: string;
   // Sound
   soundType: SoundType;
   soundVolume: number;    // 0-1
   // Visual
   visualEffect: VisualEffect;
-}
-
-/** Recording session */
-export interface RecordingSession {
-  id: string;
-  name: string;
-  startedAt: number;
-  endedAt: number | null;
-  positiveCount: number;
-  countdownCount: number;
-  totalCount: number;
-  modesUsed: AppMode[];
 }
 
 /** Debug log entry */

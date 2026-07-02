@@ -1,10 +1,8 @@
-/**
- * Beep sound generation using Web Audio API
- */
-
 import type { SoundType } from '../types';
 
 let audioCtx: AudioContext | null = null;
+let customBuffer: AudioBuffer | null = null;
+let customLoading = false;
 
 /** Get or create AudioContext */
 function getAudioContext(): AudioContext {
@@ -17,7 +15,24 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-/** Play a single tone */
+/** Load and cache custom audio file */
+async function loadCustomBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
+  if (customBuffer) return customBuffer;
+  if (customLoading) return null; // prevent concurrent loads
+  customLoading = true;
+  try {
+    const res = await fetch('./audio/custom.mp3');
+    if (!res.ok) return null;
+    const data = await res.arrayBuffer();
+    customBuffer = await ctx.decodeAudioData(data);
+    return customBuffer;
+  } catch {
+    return null;
+  } finally {
+    customLoading = false;
+  }
+}
+
 function playTone(
   ctx: AudioContext,
   frequency: number,
@@ -39,10 +54,28 @@ function playTone(
   osc.stop(ctx.currentTime + delay + duration + 0.05);
 }
 
+function playBufferSource(ctx: AudioContext, buffer: AudioBuffer, volume: number, delay: number) {
+  const source = ctx.createBufferSource();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+  source.connect(gain);
+  gain.connect(ctx.destination);
+  source.start(ctx.currentTime + delay);
+}
+
 /** Play count sound */
-export function playSound(type: SoundType, volume: number): void {
+export async function playSound(type: SoundType, volume: number): Promise<void> {
   const ctx = getAudioContext();
   const vol = Math.max(0, Math.min(1, volume));
+
+  if (type === 'custom') {
+    const buffer = await loadCustomBuffer(ctx);
+    if (buffer) {
+      playBufferSource(ctx, buffer, vol, 0);
+    }
+    return;
+  }
 
   switch (type) {
     case 'beep':
@@ -61,9 +94,17 @@ export function playSound(type: SoundType, volume: number): void {
 }
 
 /** Play finish sound */
-export function playFinishSound(type: SoundType, volume: number): void {
+export async function playFinishSound(type: SoundType, volume: number): Promise<void> {
   const ctx = getAudioContext();
   const vol = Math.max(0, Math.min(1, volume));
+
+  if (type === 'custom') {
+    const buffer = await loadCustomBuffer(ctx);
+    if (buffer) {
+      playBufferSource(ctx, buffer, vol, 0);
+    }
+    return;
+  }
 
   switch (type) {
     case 'beep':
@@ -88,4 +129,5 @@ export function closeAudioCtx(): void {
     audioCtx.close();
     audioCtx = null;
   }
+  customBuffer = null;
 }
